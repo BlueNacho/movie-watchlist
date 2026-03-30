@@ -5,12 +5,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import confetti from "canvas-confetti";
-import { Eye, EyeOff, Trash2, Search, Dices, Play, FolderOpen, Plus, X, XCircle } from "lucide-react";
+import { Eye, EyeOff, Trash2, Search, Dices, Play, FolderOpen, Plus, X, XCircle, ChevronDown } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb";
 import { MovieDetailDialog } from "./movie-detail-dialog";
 import { FilterDropdown } from "./filter-dropdown";
 import { CollectionView } from "./collection-view";
 import { CollectionPopover } from "./collection-popover";
+import { useAppStore, useAppStoreHydrated } from "@/lib/store";
 import type { MediaType } from "@/lib/tmdb";
 
 interface CollectionMembership {
@@ -121,6 +122,8 @@ export function WatchlistView() {
 
   // Create collection
   const [showCreateCollection, setShowCreateCollection] = useState(false);
+  const { collectionsCollapsed, setCollectionsCollapsed } = useAppStore();
+  const storeHydrated = useAppStoreHydrated();
   const [newCollectionName, setNewCollectionName] = useState("");
 
   const fetchItems = useCallback(() => {
@@ -468,39 +471,61 @@ export function WatchlistView() {
       </div>
 
       {/* Collections section */}
-      {allCollections.length > 0 && (
-        <div>
-          <p className="font-mono text-[10px] font-bold text-theme-text-muted uppercase tracking-widest mb-2">Colecciones</p>
-          <div className="flex flex-wrap gap-2">
-            {allCollections.map((col) => (
-              <button key={col.id} onClick={() => setActiveCollection(col.id)}
-                className="flex items-center gap-2 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 font-bold text-sm shadow-[2px_2px_0px_0px] shadow-theme-border transition-all hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer">
-                <FolderOpen size={14} strokeWidth={2.5} />
-                {col.name}
-                <span className="rounded-full border-2 border-theme-border bg-theme-surface-alt px-1.5 py-0.5 text-[10px] font-mono font-bold">
-                  {items.filter((i) => i.collections.some((c) => c.collectionId === col.id)).length}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Create collection */}
-      {showCreateCollection ? (
-        <div className="flex gap-2">
-          <input type="text" value={newCollectionName} onChange={(e) => setNewCollectionName(e.target.value)} placeholder="Nombre de la coleccion..."
-            className="flex-1 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium outline-none" autoFocus
-            onKeyDown={(e) => e.key === "Enter" && createCollection()} />
-          <button onClick={createCollection} className="rounded-lg border-3 border-theme-border bg-theme-highlight px-4 py-2 text-sm font-bold cursor-pointer">Crear</button>
-          <button onClick={() => setShowCreateCollection(false)} className="rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold cursor-pointer">✕</button>
-        </div>
-      ) : (
-        <button onClick={() => setShowCreateCollection(true)}
-          className="flex items-center gap-2 self-start rounded-lg border-3 border-dashed border-theme-border bg-theme-surface px-3 py-2 font-bold text-sm text-theme-text-muted hover:bg-theme-surface-alt transition-colors cursor-pointer">
-          <Plus size={14} strokeWidth={3} /> Nueva coleccion
+      {storeHydrated && <div>
+        <button
+          onClick={() => setCollectionsCollapsed(!collectionsCollapsed)}
+          className="flex items-center gap-2 mb-2 cursor-pointer"
+        >
+          <motion.div animate={{ rotate: collectionsCollapsed ? -90 : 0 }} transition={{ duration: 0.15 }}>
+            <ChevronDown size={14} strokeWidth={3} className="text-theme-text-muted" />
+          </motion.div>
+          <p className="font-mono text-[10px] font-bold text-theme-text-muted uppercase tracking-widest">
+            Colecciones ({allCollections.length})
+          </p>
         </button>
-      )}
+        <AnimatePresence initial={false}>
+          {!collectionsCollapsed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="flex flex-col gap-3 pb-1">
+                {allCollections.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {allCollections.map((col) => (
+                      <button key={col.id} onClick={() => setActiveCollection(col.id)}
+                        className="flex items-center gap-2 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 font-bold text-sm shadow-[2px_2px_0px_0px] shadow-theme-border transition-all hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer">
+                        <FolderOpen size={14} strokeWidth={2.5} />
+                        {col.name}
+                        <span className="rounded-full border-2 border-theme-border bg-theme-surface-alt px-1.5 py-0.5 text-[10px] font-mono font-bold">
+                          {items.filter((i) => i.collections.some((c) => c.collectionId === col.id)).length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showCreateCollection ? (
+                  <div className="flex gap-2">
+                    <input type="text" value={newCollectionName} onChange={(e) => setNewCollectionName(e.target.value)} placeholder="Nombre de la coleccion..."
+                      className="flex-1 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 text-sm font-medium outline-none" autoFocus
+                      onKeyDown={(e) => e.key === "Enter" && createCollection()} />
+                    <button onClick={createCollection} className="rounded-lg border-3 border-theme-border bg-theme-highlight px-4 py-2 text-sm font-bold cursor-pointer">Crear</button>
+                    <button onClick={() => setShowCreateCollection(false)} className="rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 text-sm font-bold cursor-pointer">✕</button>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowCreateCollection(true)}
+                    className="flex items-center gap-2 self-start rounded-lg border-3 border-dashed border-theme-border bg-theme-surface px-3 py-2 font-bold text-sm text-theme-text-muted hover:bg-theme-surface-alt transition-colors cursor-pointer">
+                    <Plus size={14} strokeWidth={3} /> Nueva coleccion
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>}
 
       {/* List */}
       {loading ? (

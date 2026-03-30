@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
 import { LayoutGrid, Rows3, Dices, XCircle } from "lucide-react";
 import { SearchBar } from "./search-bar";
 import { MovieCard } from "./movie-card";
@@ -63,6 +64,7 @@ export function MovieGrid() {
   const [randomType, setRandomType] = useState<string | null>(null);
   const [randomGenre, setRandomGenre] = useState<string | null>(null);
   const [randomProvider, setRandomProvider] = useState<string | null>(null);
+  const [isRandomPick, setIsRandomPick] = useState(false);
 
   const { gridColumns, setGridColumns } = useAppStore();
 
@@ -238,11 +240,20 @@ export function MovieGrid() {
         .filter((i) => !yearFilter || i.release_date?.startsWith(yearFilter))
     : items;
 
+  function fireConfetti() {
+    const end = Date.now() + 1500;
+    function frame() {
+      confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 1 } });
+      confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 1 } });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    }
+    frame();
+  }
+
   async function pickRandom() {
     const hasRandomFilters = randomType || randomGenre || randomProvider;
 
     if (hasRandomFilters) {
-      // Fetch from discover with random filters, pick random page
       const params = new URLSearchParams();
       if (randomGenre) params.set("genre", randomGenre);
       if (randomType) params.set("type", randomType);
@@ -257,6 +268,7 @@ export function MovieGrid() {
         if (pool.length > 0) {
           const pick = pool[Math.floor(Math.random() * pool.length)];
           setRandomMenuOpen(false);
+          setIsRandomPick(true);
           setSelectedId(pick.id);
           setSelectedType(pick.media_type);
           setDialogOpen(true);
@@ -265,11 +277,13 @@ export function MovieGrid() {
       } catch { /* fall through */ }
     }
 
-    // Fallback: pick from displayed items
     if (displayed.length === 0) return;
     const pick = displayed[Math.floor(Math.random() * displayed.length)];
     setRandomMenuOpen(false);
-    handleItemClick(pick);
+    setIsRandomPick(true);
+    setSelectedId(pick.id);
+    setSelectedType(pick.media_type);
+    setDialogOpen(true);
   }
 
   const randomPopover = (
@@ -292,6 +306,7 @@ export function MovieGrid() {
   );
 
   const handleItemClick = useCallback((item: TMDBItem) => {
+    setIsRandomPick(false);
     setSelectedId(item.id);
     setSelectedType(item.media_type);
     setDialogOpen(true);
@@ -329,22 +344,7 @@ export function MovieGrid() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Search + random (mobile only next to search) */}
-      <div className="flex gap-3 items-stretch">
-        <div className="flex-1">
-          <SearchBar onSearch={handleSearch} initialValue={currentQuery} />
-        </div>
-        <div className="relative sm:hidden shrink-0">
-          <button
-            onClick={() => setRandomMenuOpen(!randomMenuOpen)}
-            title="Elegir random"
-            className="flex w-14 h-full items-center justify-center rounded-xl border-3 border-theme-border bg-theme-highlight shadow-[4px_4px_0px_0px] shadow-theme-border transition-all hover:shadow-[2px_2px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer"
-          >
-            <Dices size={22} strokeWidth={2.5} />
-          </button>
-          {randomPopover}
-        </div>
-      </div>
+      <SearchBar onSearch={handleSearch} initialValue={currentQuery} />
 
       {/* Filters + grid toggle */}
       <div className="flex items-start justify-between gap-3">
@@ -429,12 +429,18 @@ export function MovieGrid() {
         <h2 className="text-2xl sm:text-3xl font-bold text-theme-text">
           {searchMode ? "Resultados" : "Tendencias"}
         </h2>
-        {!searchMode && (
-          <span className="rounded-lg border-3 border-theme-border bg-theme-highlight px-3 py-1 font-mono text-sm font-bold shadow-[3px_3px_0px_0px] shadow-theme-border">
-            Esta semana
-          </span>
-        )}
         <div className="flex-1 border-t-3 border-theme-border" />
+        {/* Random - mobile */}
+        <div className="relative sm:hidden shrink-0">
+          <button
+            onClick={() => setRandomMenuOpen(!randomMenuOpen)}
+            title="Elegir random"
+            className="flex items-center gap-1.5 rounded-lg border-3 border-theme-border bg-theme-highlight px-3 py-2 font-bold text-sm shadow-[3px_3px_0px_0px] shadow-theme-border transition-all hover:shadow-[1px_1px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer"
+          >
+            <Dices size={16} strokeWidth={2.5} />
+          </button>
+          {randomPopover}
+        </div>
       </div>
 
       {loading ? (
@@ -493,6 +499,8 @@ export function MovieGrid() {
         onOpenChange={(v) => { setDialogOpen(v); if (!v) fetchWatchlistIds(); }}
         onAdded={fetchWatchlistIds}
         alreadyInWatchlist={selectedId && selectedType ? watchlistIds.has(`${selectedType}-${selectedId}`) : false}
+        headerLabel={isRandomPick ? "🎲 Seleccion aleatoria" : undefined}
+        onOpenCallback={isRandomPick ? fireConfetti : undefined}
       />
     </div>
   );

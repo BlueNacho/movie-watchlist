@@ -12,6 +12,11 @@ export function SearchBar({ onSearch, initialValue = "" }: SearchBarProps) {
   const [value, setValue] = useState(initialValue);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
+  // Sync when external value changes (e.g. clear filters)
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {

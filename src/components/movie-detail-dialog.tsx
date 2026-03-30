@@ -121,10 +121,48 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {loading || !item ? (
-            <div className="flex items-center justify-center py-32">
-              <div className="flex flex-col items-center gap-3">
-                <div className="text-5xl animate-bounce">🍿</div>
-                <span className="font-mono text-sm font-bold text-theme-text-muted">Cargando...</span>
+            <div className="flex flex-col">
+              {/* Poster skeleton */}
+              <div className="w-full h-72 sm:h-80 border-b-3 border-theme-border bg-theme-surface-alt animate-pulse" />
+              {/* Content skeleton */}
+              <div className="flex flex-col gap-3 p-5">
+                {/* Title + badge */}
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-3/5 bg-theme-surface-alt rounded-lg animate-pulse" />
+                  <div className="h-6 w-14 bg-theme-card-bar rounded-md animate-pulse" />
+                </div>
+                {/* Tagline */}
+                <div className="h-4 w-2/5 bg-theme-card-bar rounded animate-pulse" />
+                {/* Stats */}
+                <div className="flex gap-2">
+                  <div className="h-8 w-16 bg-theme-surface-alt rounded-lg border-2 border-theme-border animate-pulse" />
+                  <div className="h-8 w-20 bg-theme-surface-alt rounded-lg border-2 border-theme-border animate-pulse" />
+                  <div className="h-8 w-16 bg-theme-highlight/30 rounded-lg border-2 border-theme-border animate-pulse" />
+                </div>
+                {/* Genres */}
+                <div className="flex gap-1.5">
+                  <div className="h-6 w-16 bg-theme-header/20 rounded-md animate-pulse" />
+                  <div className="h-6 w-20 bg-theme-header/20 rounded-md animate-pulse" />
+                  <div className="h-6 w-14 bg-theme-header/20 rounded-md animate-pulse" />
+                </div>
+                {/* Overview lines */}
+                <div className="space-y-2 pt-1">
+                  <div className="h-3.5 w-full bg-theme-surface-alt rounded animate-pulse" />
+                  <div className="h-3.5 w-full bg-theme-surface-alt rounded animate-pulse" />
+                  <div className="h-3.5 w-5/6 bg-theme-surface-alt rounded animate-pulse" />
+                  <div className="h-3.5 w-3/4 bg-theme-surface-alt rounded animate-pulse" />
+                </div>
+                {/* Providers */}
+                <div className="pt-3 border-t-2 border-dashed border-theme-badge">
+                  <div className="h-3 w-20 bg-theme-card-bar rounded animate-pulse mb-2" />
+                  <div className="flex gap-2">
+                    <div className="w-10 h-10 bg-theme-surface-alt rounded-lg border-2 border-theme-border animate-pulse" />
+                    <div className="w-10 h-10 bg-theme-surface-alt rounded-lg border-2 border-theme-border animate-pulse" />
+                    <div className="w-10 h-10 bg-theme-surface-alt rounded-lg border-2 border-theme-border animate-pulse" />
+                  </div>
+                </div>
+                {/* Add button */}
+                <div className="h-12 w-full bg-theme-surface-alt rounded-lg border-3 border-theme-border animate-pulse mt-1" />
               </div>
             </div>
           ) : (
