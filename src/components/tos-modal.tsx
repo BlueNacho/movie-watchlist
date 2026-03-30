@@ -54,7 +54,7 @@ export function TosModal({ username, onAccepted }: Props) {
           </div>
 
           <p className="font-mono text-[10px] text-theme-text-muted">
-            * Estos terminos son legalmente vinculantes y no se pueden apelar.
+            * Estos terminos son legalmente vinculantes y no se pueden apelar jeje.
           </p>
 
           <button
@@ -64,10 +64,6 @@ export function TosModal({ username, onAccepted }: Props) {
           >
             {accepting ? "Aceptando..." : "Acepto ❤️"}
           </button>
-
-          <p className="font-mono text-[10px] text-theme-text-muted">
-            no tenes mucha mas opcion igual jeje
-          </p>
         </div>
       </div>
     </div>

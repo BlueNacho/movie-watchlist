@@ -204,8 +204,13 @@ export function MovieGrid() {
     return () => observer.disconnect();
   }, [loadMore, items.length, page, totalPages]);
 
-  const displayed = typeFilter && currentQuery.trim()
-    ? items.filter((i) => i.media_type === typeFilter)
+  // Client-side filtering for text search (TMDB /search/multi doesn't support filter params)
+  const displayed = currentQuery.trim()
+    ? items
+        .filter((i) => !typeFilter || i.media_type === typeFilter)
+        .filter((i) => !genreFilter || i.genre_ids?.includes(Number(genreFilter)))
+        .filter((i) => !ratingFilter || (i.vote_average ?? 0) >= Number(ratingFilter))
+        .filter((i) => !yearFilter || i.release_date?.startsWith(yearFilter))
     : items;
 
   const handleItemClick = useCallback((item: TMDBItem) => {
