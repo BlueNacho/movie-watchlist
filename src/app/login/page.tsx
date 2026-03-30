@@ -1,16 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Clapperboard } from "lucide-react";
+// import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
+  const [showPassword, setShowPassword] = useState(false);
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -29,8 +28,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch {
       setError("Error de conexion");
     } finally {
@@ -39,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f5f0e8] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#dbeafe] via-[#f0e6ff] to-[#fce7f3] p-4">
       <div className="w-full max-w-sm">
         {/* Window card */}
         <div className="rounded-xl border-3 border-black bg-white shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
@@ -47,20 +45,20 @@ export default function LoginPage() {
           <div className="flex items-center gap-1.5 px-4 py-2.5 border-b-3 border-black bg-neutral-100">
             <div className="w-3 h-3 rounded-full border-2 border-black bg-white" />
             <div className="w-3 h-3 rounded-full border-2 border-black bg-white" />
-            <span className="ml-2 font-mono text-xs text-neutral-500">login.tmdb</span>
+            <span className="ml-2 font-mono text-xs text-neutral-500">login.mkv</span>
           </div>
 
           {/* Content */}
           <div className="p-6 flex flex-col gap-6">
             {/* Logo */}
             <div className="flex flex-col items-center gap-3">
-              <div className="flex items-center justify-center w-14 h-14 bg-amber-400 border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-                <Clapperboard size={28} strokeWidth={2.5} />
+              <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#dbeafe] via-[#f0e6ff] to-[#fce7f3] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-2xl leading-none">🎬</span>
               </div>
               <h1 className="text-2xl font-bold text-black">
                 Piponcito&apos;s Watchlist
               </h1>
-              <p className="text-sm text-neutral-500 font-mono">Inicia sesion</p>
+              <p className="text-sm text-neutral-500 font-mono">Inicia sesión ❤️</p>
             </div>
 
             {/* Form */}
@@ -73,7 +71,7 @@ export default function LoginPage() {
                   id="username"
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase())}
                   className="h-12 rounded-lg border-3 border-black bg-white px-4 text-base font-medium outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
                   autoComplete="username"
                   required
@@ -84,15 +82,24 @@ export default function LoginPage() {
                 <label htmlFor="password" className="font-mono text-xs font-bold text-black uppercase tracking-wider">
                   Contraseña
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 rounded-lg border-3 border-black bg-white px-4 text-base font-medium outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
-                  autoComplete="current-password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-12 rounded-lg border-3 border-black bg-white px-4 pr-12 text-base font-medium outline-none focus:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-shadow"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
               </div>
 
               {error && (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { X, Plus, Check } from "lucide-react";
+import { CollectionPopover } from "./collection-popover";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,13 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdded?: () => void;
+  hideAddButton?: boolean;
+  headerLabel?: string;
+  onOpenCallback?: () => void;
+  alreadyInWatchlist?: boolean;
 }
 
-export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdded }: Props) {
+export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdded, hideAddButton, headerLabel, onOpenCallback, alreadyInWatchlist }: Props) {
   const [item, setItem] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(false);
   const [addingToList, setAddingToList] = useState(false);
@@ -34,12 +39,16 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
   useEffect(() => {
     if (!itemId || !mediaType || !open) return;
     setLoading(true);
-    setAddedToList(false);
+    setAddedToList(!!alreadyInWatchlist);
     setAddError("");
     fetch(`/api/movie/${itemId}?type=${mediaType}`)
       .then((res) => res.json())
-      .then((data) => setItem(data))
+      .then((data) => {
+        setItem(data);
+        onOpenCallback?.();
+      })
       .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId, mediaType, open]);
 
   const poster = item ? posterUrl(item.poster_path, "w500") : null;
@@ -54,7 +63,7 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
   );
   const isTv = mediaType === "tv";
 
-  async function handleAddToWatchlist() {
+  async function handleAddToWatchlist(collectionId: number | null = null) {
     if (!item || !mediaType) return;
     setAddingToList(true);
     setAddError("");
@@ -70,6 +79,8 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
           overview: item.overview,
           voteAverage: item.vote_average?.toFixed(1),
           genreNames: item.genres?.map((g) => g.name).join(", "),
+          releaseYear: item.release_date?.split("-")[0] || null,
+          collectionId,
         }),
       });
       if (res.status === 409) {
@@ -100,7 +111,7 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
           <span className="ml-2 flex-1 font-mono text-xs text-theme-text-muted truncate">
-            {item?.title || "cargando..."} — detalle.tmdb
+            {headerLabel || `${item?.title || "cargando..."} — detalle.mkv`}
           </span>
           <DialogClose className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-theme-border bg-theme-surface text-theme-text hover:bg-theme-highlight transition-colors cursor-pointer shrink-0">
             <X size={14} strokeWidth={3} />
@@ -214,34 +225,28 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
                 )}
 
                 {/* Add to watchlist button */}
-                <div className="pt-3">
+                {!hideAddButton && <div className="pt-3">
                   {addError && (
                     <p className="font-mono text-xs text-red-500 mb-2">{addError}</p>
                   )}
-                  <button
-                    onClick={handleAddToWatchlist}
-                    disabled={addingToList || addedToList}
-                    className={`w-full flex items-center justify-center gap-2 h-12 rounded-lg border-3 border-theme-border font-bold text-sm shadow-[4px_4px_0px_0px] shadow-theme-border transition-all cursor-pointer disabled:cursor-default ${
-                      addedToList
-                        ? "bg-green-200 text-green-800"
-                        : "bg-theme-highlight text-theme-text hover:shadow-[2px_2px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px]"
-                    } disabled:opacity-80`}
-                  >
-                    {addedToList ? (
-                      <>
-                        <Check size={18} strokeWidth={3} />
-                        En tu lista
-                      </>
-                    ) : addingToList ? (
-                      "Agregando..."
-                    ) : (
-                      <>
-                        <Plus size={18} strokeWidth={3} />
-                        Agregar a mi lista
-                      </>
-                    )}
-                  </button>
-                </div>
+                  {addedToList ? (
+                    <div className="w-full flex items-center justify-center gap-2 h-12 rounded-lg border-3 border-theme-border bg-green-200 text-green-800 font-bold text-sm">
+                      <Check size={18} strokeWidth={3} />
+                      Ya esta en la lista
+                    </div>
+                  ) : addingToList ? (
+                    <div className="w-full flex items-center justify-center h-12 rounded-lg border-3 border-theme-border bg-theme-surface-alt font-bold text-sm text-theme-text-muted">
+                      Agregando...
+                    </div>
+                  ) : (
+                    <CollectionPopover
+                      onSelect={(colId) => handleAddToWatchlist(colId)}
+                      triggerClassName="w-full flex items-center justify-center gap-2 h-12 rounded-lg border-3 border-theme-border bg-theme-highlight text-theme-text font-bold text-sm shadow-[4px_4px_0px_0px] shadow-theme-border transition-all cursor-pointer hover:shadow-[2px_2px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px]"
+                      triggerLabel={<><Plus size={18} strokeWidth={3} /> Agregar a la lista</>}
+                      position="above"
+                    />
+                  )}
+                </div>}
               </div>
             </div>
           )}

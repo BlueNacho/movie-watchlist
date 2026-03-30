@@ -1,54 +1,48 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 export type Theme = "blue" | "pink";
 
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "blue",
   setTheme: () => {},
-  toggleTheme: () => {},
 });
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("blue");
+function getThemeFromCookie(): Theme {
+  if (typeof document === "undefined") return "blue";
+  const match = document.cookie.match(/pipones-theme=(blue|pink)/);
+  return (match?.[1] as Theme) || "blue";
+}
 
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getThemeFromCookie);
+
+  const setTheme = useCallback((t: Theme) => {
+    setThemeState(t);
+    document.documentElement.setAttribute("data-theme", t);
+  }, []);
+
+  // Sync from server session on mount (in case cookie is stale)
   useEffect(() => {
-    // Try to get theme from user session
     fetch("/api/auth/me")
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.theme === "blue" || data?.theme === "pink") {
+        if (data?.theme && data.theme !== theme) {
           setTheme(data.theme);
         }
       })
-      .catch(() => {
-        // Not logged in, use localStorage fallback
-        const saved = localStorage.getItem("pipones-theme") as Theme | null;
-        if (saved === "blue" || saved === "pink") {
-          setTheme(saved);
-        }
-      });
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("pipones-theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => setTheme((t) => (t === "blue" ? "pink" : "blue"));
-
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -15,8 +15,8 @@ async function seed() {
 
   // Change these before running!
   const users = [
-    { username: "ignacio", password: "changeme123", theme: "blue" as const },
-    { username: "pareja", password: "changeme123", theme: "pink" as const },
+    { username: "user1", password: "change-me-123", theme: "blue" as const },
+    { username: "user2", password: "change-me-456", theme: "pink" as const },
   ];
 
   for (const user of users) {

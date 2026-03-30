@@ -101,6 +101,59 @@ export async function getTrending(): Promise<TMDBItem[]> {
     .map((r: any) => normalizeItem(r));
 }
 
+export interface DiscoverParams {
+  genre?: string;
+  year?: string;
+  sort?: string;
+  type?: "movie" | "tv";
+  ratingMin?: string;
+  provider?: string;
+  page?: number;
+}
+
+export async function discover(params: DiscoverParams): Promise<{ results: TMDBItem[]; totalPages: number }> {
+  const key = getApiKey();
+  const mediaType = params.type || "movie";
+  const queryParts = [`api_key=${key}`, "language=es-AR", "include_adult=false"];
+
+  if (params.genre) queryParts.push(`with_genres=${params.genre}`);
+  if (params.year) {
+    if (mediaType === "movie") queryParts.push(`primary_release_year=${params.year}`);
+    else queryParts.push(`first_air_date_year=${params.year}`);
+  }
+  if (params.ratingMin) queryParts.push(`vote_average.gte=${params.ratingMin}`, "vote_count.gte=50");
+  if (params.provider) queryParts.push(`with_watch_providers=${params.provider}`, "watch_region=AR");
+  if (params.sort) queryParts.push(`sort_by=${params.sort}`);
+  else queryParts.push("sort_by=popularity.desc");
+  if (params.page) queryParts.push(`page=${params.page}`);
+
+  const res = await fetch(
+    `${TMDB_BASE}/discover/${mediaType}?${queryParts.join("&")}`
+  );
+  if (!res.ok) throw new Error("TMDB discover failed");
+  const data = await res.json();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return {
+    results: data.results.map((r: any) => normalizeItem(r, mediaType)),
+    totalPages: data.total_pages,
+  };
+}
+
+export async function searchMultiPaged(query: string, page: number = 1): Promise<{ results: TMDBItem[]; totalPages: number }> {
+  if (!query.trim()) return { results: [], totalPages: 0 };
+  const key = getApiKey();
+  const res = await fetch(
+    `${TMDB_BASE}/search/multi?api_key=${key}&query=${encodeURIComponent(query)}&language=es-AR&include_adult=false&page=${page}`
+  );
+  if (!res.ok) throw new Error("TMDB search failed");
+  const data = await res.json();
+  return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    results: data.results.filter((r: any) => r.media_type === "movie" || r.media_type === "tv").map((r: any) => normalizeItem(r)),
+    totalPages: data.total_pages,
+  };
+}
+
 export async function getDetail(id: number, mediaType: MediaType): Promise<TMDBItemDetail> {
   const key = getApiKey();
   const res = await fetch(

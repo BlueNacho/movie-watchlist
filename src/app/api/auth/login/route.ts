@@ -31,11 +31,13 @@ export async function POST(request: NextRequest) {
     userId: user.id,
     username: user.username,
     theme: user.theme,
+    tosAccepted: user.tosAccepted,
   });
 
   return NextResponse.json({
     userId: user.id,
     username: user.username,
     theme: user.theme,
+    tosAccepted: user.tosAccepted,
   });
 }

@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description: "Nuestra lista de pelis y series para ver juntos",
 };
 
+// Inline script to set theme before paint — reads the non-httpOnly cookie
+const themeScript = `(function(){try{var m=document.cookie.match(/pipones-theme=(blue|pink)/);if(m)document.documentElement.setAttribute("data-theme",m[1])}catch(e){}})()`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,6 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${spaceGrotesk.variable} ${spaceMono.variable} h-full`} data-theme="blue" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <ThemeProvider>{children}</ThemeProvider>
       </body>

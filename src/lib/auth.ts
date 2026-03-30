@@ -6,11 +6,13 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 const COOKIE_NAME = "pipones-session";
+const THEME_COOKIE = "pipones-theme";
 
 export interface SessionPayload {
   userId: number;
   username: string;
   theme: "blue" | "pink";
+  tosAccepted: boolean;
 }
 
 export async function createSession(payload: SessionPayload) {
@@ -24,7 +26,15 @@ export async function createSession(payload: SessionPayload) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+  // Non-httpOnly cookie so the inline script can read it before hydration
+  cookieStore.set(THEME_COOKIE, payload.theme, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
     path: "/",
   });
 }
@@ -45,4 +55,5 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(THEME_COOKIE);
 }
