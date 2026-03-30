@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import confetti from "canvas-confetti";
-import { Eye, EyeOff, Trash2, Search, Dices, Play, FolderOpen, Plus } from "lucide-react";
+import { Eye, EyeOff, Trash2, Search, Dices, Play, FolderOpen, Plus, X, XCircle } from "lucide-react";
 import { posterUrl } from "@/lib/tmdb";
 import { MovieDetailDialog } from "./movie-detail-dialog";
 import { FilterDropdown } from "./filter-dropdown";
@@ -67,8 +69,6 @@ export function WatchlistView() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [allCollections, setAllCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<FilterStatus>("pending");
-  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<MediaType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,13 +77,42 @@ export function WatchlistView() {
   // Active collection view
   const [activeCollection, setActiveCollection] = useState<number | null>(null);
 
-  // Filters
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  const [genreFilter, setGenreFilter] = useState<string | null>(null);
-  const [ratingFilter, setRatingFilter] = useState<string | null>(null);
-  const [addedByFilter, setAddedByFilter] = useState<string | null>(null);
-  const [collectionFilter, setCollectionFilter] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<string>("newest");
+  // Filters from URL
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const filter = (searchParams.get("status") || "pending") as FilterStatus;
+  const search = searchParams.get("q") || "";
+  const typeFilter = searchParams.get("type") || null;
+  const genreFilter = searchParams.get("genre") || null;
+  const ratingFilter = searchParams.get("rating") || null;
+  const addedByFilter = searchParams.get("addedBy") || null;
+  const collectionFilter = searchParams.get("collection") || null;
+  const sortBy = searchParams.get("sort") || "newest";
+
+  function updateParams(updates: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    router.replace(`/watchlist?${params.toString()}`, { scroll: false });
+  }
+
+  function setFilter(v: FilterStatus) { updateParams({ status: v === "pending" ? null : v }); }
+  function setSearch(v: string) { updateParams({ q: v || null }); }
+  function setTypeFilter(v: string | null) { updateParams({ type: v }); }
+  function setGenreFilter(v: string | null) { updateParams({ genre: v }); }
+  function setRatingFilter(v: string | null) { updateParams({ rating: v }); }
+  function setAddedByFilter(v: string | null) { updateParams({ addedBy: v }); }
+  function setCollectionFilter(v: string | null) { updateParams({ collection: v }); }
+  function setSortBy(v: string) { updateParams({ sort: v === "newest" ? null : v }); }
+
+  function clearAllFilters() {
+    router.replace("/watchlist", { scroll: false });
+  }
+
+  const hasAnyFilter = typeFilter || genreFilter || ratingFilter || addedByFilter || collectionFilter || search || (sortBy !== "newest") || (filter !== "pending");
 
   // Random filters
   const [randomMenuOpen, setRandomMenuOpen] = useState(false);
@@ -201,6 +230,19 @@ export function WatchlistView() {
     }
   }
 
+  async function renameCollection(collectionId: number, name: string) {
+    await fetch(`/api/collections/${collectionId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    setAllCollections((prev) => prev.map((c) => c.id === collectionId ? { ...c, name } : c));
+    setItems((prev) => prev.map((i) => ({
+      ...i,
+      collections: i.collections.map((c) => c.collectionId === collectionId ? { ...c, collectionName: name } : c),
+    })));
+  }
+
   async function deleteCollection(collectionId: number) {
     await fetch(`/api/collections/${collectionId}`, { method: "DELETE" });
     setAllCollections((prev) => prev.filter((c) => c.id !== collectionId));
@@ -283,6 +325,7 @@ export function WatchlistView() {
           onReorder={handleReorder}
           onRemoveFromCollection={(itemId) => removeFromCollection(activeCollection, itemId)}
           onDeleteCollection={deleteCollection}
+          onRenameCollection={renameCollection}
           onItemClick={(item) => openDetail(item.tmdbId, item.mediaType)}
         />
         <MovieDetailDialog
@@ -326,6 +369,44 @@ export function WatchlistView() {
         </div>
       </div>
 
+      {/* Progress bar */}
+      {items.length > 0 && (() => {
+        const total = items.length;
+        const watchedPct = Math.round((watchedCount / total) * 100);
+        const watchingPct = Math.round((watchingCount / total) * 100);
+        const donePct = watchedPct + watchingPct;
+        return (
+          <div className="rounded-xl border-3 border-theme-border bg-theme-surface p-3 shadow-[3px_3px_0px_0px] shadow-theme-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-mono text-xs font-bold text-theme-text-muted">Progreso</span>
+              <span className="font-mono text-xs font-bold text-theme-text">{donePct}%</span>
+            </div>
+            <div className="h-4 w-full rounded-full border-2 border-theme-border bg-theme-surface-alt overflow-hidden flex">
+              {watchedPct > 0 && (
+                <div className="h-full bg-green-400 transition-all duration-500" style={{ width: `${watchedPct}%` }} />
+              )}
+              {watchingPct > 0 && (
+                <div className="h-full bg-yellow-400 transition-all duration-500" style={{ width: `${watchingPct}%` }} />
+              )}
+            </div>
+            <div className="flex gap-4 mt-2">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-green-400 border-2 border-theme-border" />
+                <span className="font-mono text-[10px] text-theme-text-muted">Vistas ({watchedCount})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-yellow-400 border-2 border-theme-border" />
+                <span className="font-mono text-[10px] text-theme-text-muted">Viendo ({watchingCount})</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-theme-surface-alt border-2 border-theme-border" />
+                <span className="font-mono text-[10px] text-theme-text-muted">Por ver ({pendingCount})</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Status tabs */}
       <div className="rounded-xl border-3 border-theme-border bg-theme-card-bar p-2 shadow-[3px_3px_0px_0px] shadow-theme-border">
         <div className="hidden sm:flex gap-2">
@@ -361,6 +442,11 @@ export function WatchlistView() {
         </div>
         <input type="text" placeholder="Buscar en tu lista..." value={search} onChange={(e) => setSearch(e.target.value)}
           className="flex-1 h-12 px-4 text-base font-medium bg-transparent outline-none placeholder:text-theme-text-muted text-theme-text" />
+        {search && (
+          <button onClick={() => setSearch("")} className="flex items-center justify-center w-10 h-10 mr-2 rounded-lg text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-alt transition-colors cursor-pointer">
+            <X size={18} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -373,6 +459,12 @@ export function WatchlistView() {
           <FilterDropdown label="Coleccion" options={[{ value: "none", label: "Sin coleccion" }, ...collectionOptions]} value={collectionFilter} onChange={setCollectionFilter} />
         )}
         <FilterDropdown label="Ordenar" options={SORT_OPTIONS} value={sortBy} onChange={(v) => setSortBy(v || "newest")} showReset={false} />
+        {hasAnyFilter && (
+          <button onClick={clearAllFilters}
+            className="flex items-center gap-1.5 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs font-bold text-theme-text-muted shadow-[2px_2px_0px_0px] shadow-theme-border transition-all hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:text-theme-text cursor-pointer">
+            <XCircle size={14} strokeWidth={2.5} /> Limpiar
+          </button>
+        )}
       </div>
 
       {/* Collections section */}
@@ -412,11 +504,24 @@ export function WatchlistView() {
 
       {/* List */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="text-5xl animate-bounce">🍿</div>
-            <span className="font-mono text-sm font-bold text-theme-text-muted">Cargando...</span>
-          </div>
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex gap-4 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border overflow-hidden">
+              <div className="w-20 sm:w-24 shrink-0 aspect-[2/3] bg-theme-surface-alt animate-pulse" />
+              <div className="flex flex-1 flex-col gap-2 py-3 pr-3">
+                <div className="flex gap-2">
+                  <div className="h-5 w-2/3 bg-theme-surface-alt rounded animate-pulse" />
+                  <div className="h-5 w-12 bg-theme-card-bar rounded-md animate-pulse" />
+                </div>
+                <div className="h-3 w-1/2 bg-theme-card-bar rounded animate-pulse" />
+                <div className="flex gap-1.5 mt-auto">
+                  <div className="h-5 w-10 bg-theme-surface-alt rounded-md animate-pulse" />
+                  <div className="h-5 w-14 bg-theme-surface-alt rounded-md animate-pulse" />
+                  <div className="h-5 w-12 bg-theme-surface-alt rounded-md animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : displayed.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border">
@@ -427,13 +532,24 @@ export function WatchlistView() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {displayed.map((item) => (
-            <WatchlistCard key={item.id} item={item}
-              onSetStatus={(e, s) => setItemStatus(e, item, s)}
-              onRemove={(e) => removeItem(e, item.id)}
-              onClick={() => openDetail(item.tmdbId, item.mediaType)}
-              onAddToCollection={(colId) => addToCollection(item.id, colId)} />
-          ))}
+          <AnimatePresence initial={false}>
+            {displayed.map((item) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, x: -60 }}
+                transition={{ duration: 0.15 }}
+                className="flex"
+              >
+                <WatchlistCard item={item}
+                  onSetStatus={(e, s) => setItemStatus(e, item, s)}
+                  onRemove={(e) => removeItem(e, item.id)}
+                  onClick={() => openDetail(item.tmdbId, item.mediaType)}
+                  onAddToCollection={(colId) => addToCollection(item.id, colId)} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
 
@@ -464,7 +580,7 @@ function WatchlistCard({ item, onSetStatus, onRemove, onClick, onAddToCollection
 
   return (
     <button onClick={onClick}
-      className={`flex gap-3 sm:gap-4 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px] hover:shadow-theme-border hover:-translate-x-[2px] hover:-translate-y-[2px] cursor-pointer text-left ${isWatched ? "opacity-70" : ""}`}>
+      className={`flex w-full gap-3 sm:gap-4 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border overflow-hidden transition-all hover:shadow-[6px_6px_0px_0px] hover:shadow-theme-border hover:-translate-x-[2px] hover:-translate-y-[2px] cursor-pointer text-left ${isWatched ? "opacity-70" : ""}`}>
       {/* Poster */}
       <div className="relative w-20 sm:w-24 shrink-0 bg-theme-surface-alt">
         {poster ? <Image src={poster} alt={item.title} fill className="object-cover" sizes="96px" />

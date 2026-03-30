@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { collectionItems } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
+import { cacheInvalidate } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 // Batch update positions within a collection
@@ -26,5 +27,6 @@ export async function POST(request: NextRequest) {
       );
   }
 
+  cacheInvalidate("watchlist");
   return NextResponse.json({ ok: true });
 }

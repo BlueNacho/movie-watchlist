@@ -1,4 +1,5 @@
 import { getDetail, getWatchProviders } from "@/lib/tmdb";
+import { cacheGet, cacheSet, TMDB_TTL } from "@/lib/cache";
 import type { MediaType } from "@/lib/tmdb";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -13,6 +14,9 @@ export async function GET(
   }
 
   const mediaType = (request.nextUrl.searchParams.get("type") || "movie") as MediaType;
+  const cacheKey = `movie:${mediaType}:${itemId}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return NextResponse.json(cached);
 
   try {
     const [detail, providers] = await Promise.all([
@@ -20,10 +24,11 @@ export async function GET(
       getWatchProviders(itemId, mediaType),
     ]);
 
-    return NextResponse.json({ ...detail, watch_providers: providers });
+    const data = { ...detail, watch_providers: providers };
+    cacheSet(cacheKey, data, TMDB_TTL, ["tmdb"]);
+    return NextResponse.json(data);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("Detail API error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

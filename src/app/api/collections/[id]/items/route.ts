@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { collectionItems } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
+import { cacheInvalidate } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 // Add item to collection
@@ -41,8 +42,10 @@ export async function POST(
     .values({ collectionId, watchlistItemId, position: maxPos })
     .returning();
 
+  cacheInvalidate("watchlist");
   return NextResponse.json(item, { status: 201 });
 }
+
 
 // Remove item from collection
 export async function DELETE(
@@ -60,5 +63,6 @@ export async function DELETE(
     .delete(collectionItems)
     .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.watchlistItemId, watchlistItemId)));
 
+  cacheInvalidate("watchlist");
   return NextResponse.json({ ok: true });
 }

@@ -1,14 +1,15 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  initialValue?: string;
 }
 
-export function SearchBar({ onSearch }: SearchBarProps) {
-  const [value, setValue] = useState("");
+export function SearchBar({ onSearch, initialValue = "" }: SearchBarProps) {
+  const [value, setValue] = useState(initialValue);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
@@ -34,6 +35,14 @@ export function SearchBar({ onSearch }: SearchBarProps) {
           onChange={(e) => setValue(e.target.value)}
           className="flex-1 h-14 px-4 text-lg font-medium bg-transparent outline-none placeholder:text-theme-text-muted text-theme-text"
         />
+        {value && (
+          <button
+            onClick={() => setValue("")}
+            className="flex items-center justify-center w-10 h-10 mr-2 rounded-lg text-theme-text-muted hover:text-theme-text hover:bg-theme-surface-alt transition-colors cursor-pointer"
+          >
+            <X size={18} strokeWidth={2.5} />
+          </button>
+        )}
       </div>
     </div>
   );

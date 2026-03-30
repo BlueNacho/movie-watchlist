@@ -2,11 +2,16 @@ import { db } from "@/db";
 import { watchlistItems, users, collectionItems, collections } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { eq, and } from "drizzle-orm";
+import { cacheGet, cacheSet, cacheInvalidate, DB_TTL } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+  const cacheKey = "watchlist:all";
+  const cached = cacheGet(cacheKey);
+  if (cached) return NextResponse.json(cached);
 
   // Get all watchlist items with user
   const items = await db
@@ -54,6 +59,7 @@ export async function GET() {
     collections: membershipMap.get(item.id) || [],
   }));
 
+  cacheSet(cacheKey, result, DB_TTL, ["watchlist"]);
   return NextResponse.json(result);
 }
 
@@ -101,5 +107,6 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  cacheInvalidate("watchlist");
   return NextResponse.json(item, { status: 201 });
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LayoutGrid, Rows3 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { LayoutGrid, Rows3, Dices, XCircle } from "lucide-react";
 import { SearchBar } from "./search-bar";
 import { MovieCard } from "./movie-card";
 import { MovieDetailDialog } from "./movie-detail-dialog";
@@ -58,6 +59,10 @@ export function MovieGrid() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedType, setSelectedType] = useState<MediaType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [randomMenuOpen, setRandomMenuOpen] = useState(false);
+  const [randomType, setRandomType] = useState<string | null>(null);
+  const [randomGenre, setRandomGenre] = useState<string | null>(null);
+  const [randomProvider, setRandomProvider] = useState<string | null>(null);
 
   const { gridColumns, setGridColumns } = useAppStore();
 
@@ -79,13 +84,25 @@ export function MovieGrid() {
     fetchWatchlistIds();
   }, [fetchWatchlistIds]);
 
-  // Filters
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  const [genreFilter, setGenreFilter] = useState<string | null>(null);
-  const [yearFilter, setYearFilter] = useState<string | null>(null);
-  const [ratingFilter, setRatingFilter] = useState<string | null>(null);
-  const [providerFilter, setProviderFilter] = useState<string | null>(null);
-  const [currentQuery, setCurrentQuery] = useState("");
+  // Filters from URL
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const typeFilter = searchParams.get("type") || null;
+  const genreFilter = searchParams.get("genre") || null;
+  const yearFilter = searchParams.get("year") || null;
+  const ratingFilter = searchParams.get("rating") || null;
+  const providerFilter = searchParams.get("provider") || null;
+  const currentQuery = searchParams.get("q") || "";
+
+  function updateParams(updates: Record<string, string | null>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -118,49 +135,57 @@ export function MovieGrid() {
       .finally(() => setLoading(false));
   }
 
+  // Initial load: respect URL params
   useEffect(() => {
-    fetchInitial("/api/trending", false);
+    fetchWithFilters(currentQuery, genreFilter, yearFilter, typeFilter, ratingFilter, providerFilter);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSearch = useCallback((query: string) => {
-    setCurrentQuery(query);
-    if (!query.trim()) {
-      if (hasFilters) {
-        fetchInitial(buildDiscoverUrl(1), true);
-      } else {
-        fetchInitial("/api/trending", false);
-      }
-      return;
-    }
-    fetchInitial(`/api/search?q=${encodeURIComponent(query)}&page=1`, true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasFilters, buildDiscoverUrl]);
+  // Text search → search API + client-side filters (type, genre, rating, year)
+  // No text → discover API (supports all filters including provider)
+  function fetchWithFilters(query: string, genre: string | null, year: string | null, type: string | null, rating: string | null, provider: string | null) {
+    const anyFilter = genre || year || rating || provider || type;
 
-  function applyFilter(genre: string | null, year: string | null, type: string | null, rating: string | null, provider: string | null) {
-    setGenreFilter(genre);
-    setYearFilter(year);
-    setTypeFilter(type);
-    setRatingFilter(rating);
-    setProviderFilter(provider);
-
-    if (!genre && !year && !type && !rating && !provider && !currentQuery.trim()) {
+    if (!query.trim() && !anyFilter) {
       fetchInitial("/api/trending", false);
       return;
     }
-    if (currentQuery.trim()) {
-      fetchInitial(`/api/search?q=${encodeURIComponent(currentQuery)}&page=1`, true);
+
+    if (query.trim()) {
+      // Text search: use search API, all filters applied client-side
+      fetchInitial(`/api/search?q=${encodeURIComponent(query)}&page=1`, true);
       return;
     }
+
+    // No text: use discover with all server-side filters
     const params = new URLSearchParams();
     if (genre) params.set("genre", genre);
     if (year) params.set("year", year);
     if (type) params.set("type", type);
+    else params.set("type", "movie");
     if (rating) params.set("ratingMin", rating);
     if (provider) params.set("provider", provider);
     params.set("page", "1");
     fetchInitial(`/api/discover?${params}`, true);
   }
+
+  const handleSearch = useCallback((query: string) => {
+    updateParams({ q: query || null });
+    fetchWithFilters(query, genreFilter, yearFilter, typeFilter, ratingFilter, providerFilter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [genreFilter, yearFilter, typeFilter, ratingFilter, providerFilter]);
+
+  function applyFilter(genre: string | null, year: string | null, type: string | null, rating: string | null, provider: string | null) {
+    updateParams({ genre, year, type, rating, provider });
+    fetchWithFilters(currentQuery, genre, year, type, rating, provider);
+  }
+
+  function clearAllFilters() {
+    router.replace("?", { scroll: false });
+    fetchWithFilters("", null, null, null, null, null);
+  }
+
+  const hasAnyFilter = typeFilter || genreFilter || yearFilter || ratingFilter || providerFilter || currentQuery;
 
   // Stable ref for loadMore so IntersectionObserver always calls the latest version
   const stateRef = useRef({ loadingMore: false, page: 1, totalPages: 1, currentQuery: "", hasFilters: false, buildDiscoverUrl: buildDiscoverUrl });
@@ -198,13 +223,13 @@ export function MovieGrid() {
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) loadMore(); },
-      { rootMargin: "600px" } // preload well before reaching bottom
+      { rootMargin: "1000px" } // preload well before reaching bottom
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [loadMore, items.length, page, totalPages]);
 
-  // Client-side filtering for text search (TMDB /search/multi doesn't support filter params)
+  // Client-side filtering when using text search (search API doesn't support these params)
   const displayed = currentQuery.trim()
     ? items
         .filter((i) => !typeFilter || i.media_type === typeFilter)
@@ -212,6 +237,59 @@ export function MovieGrid() {
         .filter((i) => !ratingFilter || (i.vote_average ?? 0) >= Number(ratingFilter))
         .filter((i) => !yearFilter || i.release_date?.startsWith(yearFilter))
     : items;
+
+  async function pickRandom() {
+    const hasRandomFilters = randomType || randomGenre || randomProvider;
+
+    if (hasRandomFilters) {
+      // Fetch from discover with random filters, pick random page
+      const params = new URLSearchParams();
+      if (randomGenre) params.set("genre", randomGenre);
+      if (randomType) params.set("type", randomType);
+      else params.set("type", "movie");
+      if (randomProvider) params.set("provider", randomProvider);
+      const randomPage = Math.floor(Math.random() * 5) + 1;
+      params.set("page", String(randomPage));
+      try {
+        const res = await fetch(`/api/discover?${params}`);
+        const data = await res.json();
+        const pool = data.results || [];
+        if (pool.length > 0) {
+          const pick = pool[Math.floor(Math.random() * pool.length)];
+          setRandomMenuOpen(false);
+          setSelectedId(pick.id);
+          setSelectedType(pick.media_type);
+          setDialogOpen(true);
+          return;
+        }
+      } catch { /* fall through */ }
+    }
+
+    // Fallback: pick from displayed items
+    if (displayed.length === 0) return;
+    const pick = displayed[Math.floor(Math.random() * displayed.length)];
+    setRandomMenuOpen(false);
+    handleItemClick(pick);
+  }
+
+  const randomPopover = (
+    <>
+      {randomMenuOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setRandomMenuOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border p-4 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+            <p className="font-bold text-sm text-theme-text">🎲 Elegir al azar</p>
+            <FilterDropdown label="Tipo" options={[{ value: "movie", label: "Pelis" }, { value: "tv", label: "Series" }]} value={randomType} onChange={setRandomType} />
+            <FilterDropdown label="Genero" options={GENRES} value={randomGenre} onChange={setRandomGenre} />
+            <FilterDropdown label="Plataforma" options={PROVIDERS} value={randomProvider} onChange={setRandomProvider} />
+            <button onClick={pickRandom} className="flex items-center justify-center gap-2 rounded-lg border-3 border-theme-border bg-theme-highlight px-4 py-2.5 font-bold text-sm shadow-[3px_3px_0px_0px] shadow-theme-border transition-all hover:shadow-[1px_1px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer">
+              <Dices size={16} strokeWidth={2.5} /> Sorprendeme!
+            </button>
+          </div>
+        </>
+      )}
+    </>
+  );
 
   const handleItemClick = useCallback((item: TMDBItem) => {
     setSelectedId(item.id);
@@ -251,7 +329,22 @@ export function MovieGrid() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SearchBar onSearch={handleSearch} />
+      {/* Search + random (mobile only next to search) */}
+      <div className="flex gap-3 items-stretch">
+        <div className="flex-1">
+          <SearchBar onSearch={handleSearch} initialValue={currentQuery} />
+        </div>
+        <div className="relative sm:hidden shrink-0">
+          <button
+            onClick={() => setRandomMenuOpen(!randomMenuOpen)}
+            title="Elegir random"
+            className="flex w-14 h-full items-center justify-center rounded-xl border-3 border-theme-border bg-theme-highlight shadow-[4px_4px_0px_0px] shadow-theme-border transition-all hover:shadow-[2px_2px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer"
+          >
+            <Dices size={22} strokeWidth={2.5} />
+          </button>
+          {randomPopover}
+        </div>
+      </div>
 
       {/* Filters + grid toggle */}
       <div className="flex items-start justify-between gap-3">
@@ -286,6 +379,28 @@ export function MovieGrid() {
             value={providerFilter}
             onChange={(v) => applyFilter(genreFilter, yearFilter, typeFilter, ratingFilter, v)}
           />
+          {hasAnyFilter && (
+            <button
+              onClick={clearAllFilters}
+              className="flex items-center gap-1.5 rounded-lg border-3 border-theme-border bg-theme-surface px-3 py-2 font-mono text-xs font-bold text-theme-text-muted shadow-[2px_2px_0px_0px] shadow-theme-border transition-all hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] hover:text-theme-text cursor-pointer"
+            >
+              <XCircle size={14} strokeWidth={2.5} />
+              Limpiar
+            </button>
+          )}
+        </div>
+
+        {/* Random - desktop only */}
+        <div className="relative hidden sm:block shrink-0">
+          <button
+            onClick={() => setRandomMenuOpen(!randomMenuOpen)}
+            title="Elegir random"
+            className="flex items-center gap-1.5 rounded-lg border-3 border-theme-border bg-theme-highlight px-3 py-2 font-mono text-xs font-bold shadow-[3px_3px_0px_0px] shadow-theme-border transition-all hover:shadow-[1px_1px_0px_0px] hover:shadow-theme-border hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer"
+          >
+            <Dices size={14} strokeWidth={3} />
+            Random
+          </button>
+          {randomPopover}
         </div>
 
         {/* Grid toggle - only visible on mobile */}
@@ -312,7 +427,7 @@ export function MovieGrid() {
       {/* Section header */}
       <div className="flex items-center gap-4">
         <h2 className="text-2xl sm:text-3xl font-bold text-theme-text">
-          {searchMode ? "Resultados" : "Trending"}
+          {searchMode ? "Resultados" : "Tendencias"}
         </h2>
         {!searchMode && (
           <span className="rounded-lg border-3 border-theme-border bg-theme-highlight px-3 py-1 font-mono text-sm font-bold shadow-[3px_3px_0px_0px] shadow-theme-border">
@@ -323,11 +438,24 @@ export function MovieGrid() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="text-5xl animate-bounce">🍿</div>
-            <span className="font-mono text-sm font-bold text-theme-text-muted">Cargando...</span>
-          </div>
+        <div className={gridClass}>
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="flex flex-col rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border overflow-hidden">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 border-b-3 border-theme-border bg-theme-card-bar">
+                <div className="w-2.5 h-2.5 rounded-full border-2 border-theme-border bg-theme-surface" />
+                <div className="w-2.5 h-2.5 rounded-full border-2 border-theme-border bg-theme-surface" />
+              </div>
+              <div className="aspect-[2/3] w-full bg-theme-surface-alt animate-pulse border-b-3 border-theme-border" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 w-3/4 bg-theme-surface-alt rounded animate-pulse" />
+                <div className="h-3 w-1/3 bg-theme-card-bar rounded animate-pulse" />
+                <div className="flex gap-1 pt-1">
+                  <div className="h-5 w-14 bg-theme-surface-alt rounded-md animate-pulse" />
+                  <div className="h-5 w-12 bg-theme-surface-alt rounded-md animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : displayed.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-16 rounded-xl border-3 border-theme-border bg-theme-surface shadow-[4px_4px_0px_0px] shadow-theme-border">
@@ -349,12 +477,12 @@ export function MovieGrid() {
       )}
 
       {/* Invisible sentinel for infinite scroll - always rendered, preloads 600px before visible */}
+      {/* Sentinel + loading area: fixed height to prevent layout shifts */}
       {page < totalPages && (
-        <div ref={sentinelRef} className="h-1" />
-      )}
-      {loadingMore && (
-        <div className="flex justify-center py-4">
-          <span className="font-mono text-xs text-theme-text-muted animate-pulse">Cargando mas...</span>
+        <div ref={sentinelRef} className="min-h-[100px] flex items-center justify-center">
+          {loadingMore && (
+            <span className="font-mono text-xs text-theme-text-muted animate-pulse">Cargando mas...</span>
+          )}
         </div>
       )}
 

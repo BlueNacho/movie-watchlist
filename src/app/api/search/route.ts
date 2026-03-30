@@ -1,4 +1,5 @@
 import { searchMultiPaged } from "@/lib/tmdb";
+import { cacheGet, cacheSet, TMDB_TTL } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -7,12 +8,17 @@ export async function GET(request: NextRequest) {
   if (!query.trim()) {
     return NextResponse.json({ results: [], totalPages: 0 });
   }
+
+  const cacheKey = `search:${query.toLowerCase()}:${page}`;
+  const cached = cacheGet(cacheKey);
+  if (cached) return NextResponse.json(cached);
+
   try {
     const data = await searchMultiPaged(query, page);
+    cacheSet(cacheKey, data, TMDB_TTL, ["tmdb"]);
     return NextResponse.json(data);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Unknown error";
-    console.error("Search API error:", msg);
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { GripVertical, Trash2, X } from "lucide-react";
+import { GripVertical, Trash2, X, Pencil } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -43,14 +44,24 @@ interface Props {
   onReorder: (collectionId: number, items: { id: number; position: number }[]) => void;
   onRemoveFromCollection: (itemId: number) => void;
   onDeleteCollection: (collectionId: number) => void;
+  onRenameCollection: (collectionId: number, name: string) => void;
   onItemClick: (item: CollectionItem) => void;
 }
 
-export function CollectionView({ collection, onClose, onReorder, onRemoveFromCollection, onDeleteCollection, onItemClick }: Props) {
+export function CollectionView({ collection, onClose, onReorder, onRemoveFromCollection, onDeleteCollection, onRenameCollection, onItemClick }: Props) {
   const [items, setItems] = useState(
     [...collection.items].sort((a, b) => a.position - b.position)
   );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(collection.name);
+
+  function handleRename() {
+    if (editName.trim() && editName.trim() !== collection.name) {
+      onRenameCollection(collection.id, editName.trim());
+    }
+    setEditing(false);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -80,8 +91,25 @@ export function CollectionView({ collection, onClose, onReorder, onRemoveFromCol
         >
           <X size={16} strokeWidth={3} />
         </button>
-        <h3 className="text-xl font-bold text-theme-text flex-1">{collection.name}</h3>
-        <span className="font-mono text-xs text-theme-text-muted">{items.length} items</span>
+        {editing ? (
+          <div className="flex flex-1 gap-2">
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="flex-1 rounded-lg border-2 border-theme-border bg-theme-surface px-3 py-1 text-lg font-bold outline-none"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") { setEditing(false); setEditName(collection.name); } }}
+              onBlur={handleRename}
+            />
+          </div>
+        ) : (
+          <button onClick={() => setEditing(true)} className="flex items-center gap-2 flex-1 cursor-pointer group/rename">
+            <h3 className="text-xl font-bold text-theme-text">{collection.name}</h3>
+            <Pencil size={14} strokeWidth={2.5} className="text-theme-text-muted sm:opacity-0 sm:group-hover/rename:opacity-100 transition-opacity" />
+          </button>
+        )}
+        <span className="font-mono text-xs text-theme-text-muted shrink-0">{items.length} items</span>
         <button
           onClick={() => setConfirmDelete(true)}
           className="flex h-8 items-center gap-1.5 rounded-lg border-2 border-theme-border bg-red-100 px-2 text-xs font-bold text-red-600 hover:bg-red-200 transition-colors cursor-pointer"
@@ -121,17 +149,25 @@ export function CollectionView({ collection, onClose, onReorder, onRemoveFromCol
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+            <AnimatePresence mode="popLayout">
             <div className="flex flex-col gap-2">
               {items.map((item, idx) => (
-                <SortableItem
+                <motion.div
                   key={item.id}
+                  layout
+                  exit={{ opacity: 0, x: -80 }}
+                  transition={{ duration: 0.2 }}
+                >
+                <SortableItem
                   item={item}
                   index={idx}
                   onRemove={() => { setItems((prev) => prev.filter((i) => i.id !== item.id)); onRemoveFromCollection(item.id); }}
                   onClick={() => onItemClick(item)}
                 />
+                </motion.div>
               ))}
             </div>
+            </AnimatePresence>
           </SortableContext>
         </DndContext>
       )}

@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { watchlistItems } from "@/db/schema";
 import { getSession } from "@/lib/auth";
 import { eq } from "drizzle-orm";
+import { cacheInvalidate } from "@/lib/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
@@ -35,6 +36,7 @@ export async function PATCH(
     .returning();
 
   if (!updated) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  cacheInvalidate("watchlist");
   return NextResponse.json(updated);
 }
 
@@ -56,5 +58,6 @@ export async function DELETE(
     .returning();
 
   if (!deleted) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+  cacheInvalidate("watchlist");
   return NextResponse.json({ ok: true });
 }

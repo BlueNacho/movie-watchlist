@@ -55,7 +55,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#dbeafe] via-[#f0e6ff] to-[#fce7f3] border-3 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
                 <span className="text-2xl leading-none">🎬</span>
               </div>
-              <h1 className="text-2xl font-bold text-black">
+              <h1 className="text-2xl font-[family-name:var(--font-title)] font-semibold text-black">
                 Piponcito&apos;s Watchlist
               </h1>
               <p className="text-sm text-neutral-500 font-mono">Inicia sesión ❤️</p>

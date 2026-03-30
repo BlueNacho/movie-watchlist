@@ -21,7 +21,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-theme-badge border-b-3 border-theme-border">
+      <header className="sticky top-0 z-50 bg-theme-badge border-b-3 border-theme-border">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -29,7 +29,7 @@ export function Header() {
           >
             <Menu size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-lg sm:text-xl font-bold tracking-tight text-theme-text">
+          <h1 className="text-lg sm:text-xl font-[family-name:var(--font-title)] font-semibold text-theme-text">
             Piponcito&apos;s Watchlist
           </h1>
         </div>
