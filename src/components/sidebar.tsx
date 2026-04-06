@@ -2,20 +2,16 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { X, Search, List, LogOut, Dog, Cat } from "lucide-react";
-import { useTheme } from "@/lib/theme";
+import { usePathname } from "next/navigation";
+import { X, Search, List } from "lucide-react";
 
 interface SidebarProps {
   open: boolean;
   onClose: () => void;
-  username?: string;
 }
 
-export function Sidebar({ open, onClose, username }: SidebarProps) {
+export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { theme } = useTheme();
 
   // Close on route change
   useEffect(() => {
@@ -30,12 +26,6 @@ export function Sidebar({ open, onClose, username }: SidebarProps) {
     if (open) document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
-
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
 
   return (
     <>
@@ -67,9 +57,9 @@ export function Sidebar({ open, onClose, username }: SidebarProps) {
         {/* Nav links */}
         <nav className="flex flex-col gap-2 p-4 flex-1">
           <Link
-            href="/"
+            href="/watchlist/search"
             className={`flex items-center gap-3 rounded-lg border-3 border-theme-border px-4 py-3 font-bold text-sm transition-all ${
-              pathname === "/"
+              pathname === "/watchlist/search"
                 ? "bg-theme-highlight shadow-[3px_3px_0px_0px] shadow-theme-border"
                 : "bg-theme-surface shadow-[2px_2px_0px_0px] shadow-theme-border hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
             }`}
@@ -89,28 +79,6 @@ export function Sidebar({ open, onClose, username }: SidebarProps) {
             La listita ❤️
           </Link>
         </nav>
-
-        {/* User section */}
-        <div className="border-t-3 border-theme-border p-4 flex flex-col gap-3">
-          <div className="flex items-center gap-3 px-2">
-            <div className={`flex h-9 w-9 items-center justify-center rounded-full border-2 border-theme-border ${
-              username === "vicki" ? "bg-pink-200 text-pink-600" : "bg-blue-200 text-blue-600"
-            }`}>
-              {username === "vicki" ? <Dog size={16} strokeWidth={2.5} /> : <Cat size={16} strokeWidth={2.5} />}
-            </div>
-            <div>
-              <p className="font-bold text-sm text-theme-text">{username || "..."}</p>
-              <p className="font-mono text-[10px] text-theme-text-muted">Conectado</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 rounded-lg border-3 border-theme-border bg-theme-surface px-4 py-3 font-bold text-sm shadow-[2px_2px_0px_0px] shadow-theme-border transition-all hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] cursor-pointer text-red-500"
-          >
-            <LogOut size={18} strokeWidth={2.5} />
-            Cerrar sesion
-          </button>
-        </div>
       </div>
     </>
   );

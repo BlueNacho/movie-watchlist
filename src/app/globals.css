@@ -232,3 +232,47 @@
   background-image: radial-gradient(circle, var(--theme-border) 1px, transparent 1px);
   background-size: 16px 16px;
 }
+
+/* Driver.js onboarding tour */
+.pipones-tour {
+  font-family: var(--font-sans) !important;
+  border-radius: 12px !important;
+  border: 3px solid var(--theme-border) !important;
+  box-shadow: 6px 6px 0px 0px var(--theme-border) !important;
+  background: var(--theme-surface) !important;
+  color: var(--theme-text) !important;
+}
+.pipones-tour .driver-popover-title {
+  font-family: var(--font-title), var(--font-sans) !important;
+  font-size: 16px !important;
+}
+.pipones-tour .driver-popover-description {
+  font-size: 13px !important;
+  color: var(--theme-text-muted) !important;
+}
+.pipones-tour .driver-popover-progress-text {
+  font-family: var(--font-mono), monospace !important;
+  font-size: 10px !important;
+  color: var(--theme-text-muted) !important;
+}
+.pipones-tour .driver-popover-navigation-btns button {
+  border-radius: 8px !important;
+  border: 2px solid var(--theme-border) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  padding: 6px 14px !important;
+  text-shadow: none !important;
+  box-shadow: 2px 2px 0px 0px var(--theme-border) !important;
+}
+.pipones-tour .driver-popover-prev-btn {
+  background: var(--theme-surface) !important;
+  color: var(--theme-text) !important;
+}
+.pipones-tour .driver-popover-next-btn,
+.pipones-tour .driver-popover-done-btn {
+  background: var(--theme-highlight) !important;
+  color: var(--theme-text) !important;
+}
+.pipones-tour .driver-popover-close-btn {
+  color: var(--theme-text-muted) !important;
+}

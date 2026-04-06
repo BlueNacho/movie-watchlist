@@ -1,22 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "./sidebar";
 
 export function Header() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [username, setUsername] = useState<string>("");
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.username) setUsername(data.username);
-      })
-      .catch(() => {});
-  }, []);
-
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
   return (
@@ -29,13 +18,13 @@ export function Header() {
           >
             <Menu size={18} strokeWidth={2.5} />
           </button>
-          <h1 className="text-lg sm:text-xl font-[family-name:var(--font-title)] font-semibold text-theme-text">
-            Piponcito&apos;s Watchlist
+          <h1 className="text-lg sm:text-xl font-[family-name:var(--font-title)] text-theme-text">
+            Piponcito&apos;s Watchlist 🎬
           </h1>
         </div>
       </header>
 
-      <Sidebar open={sidebarOpen} onClose={closeSidebar} username={username} />
+      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
     </>
   );
 }

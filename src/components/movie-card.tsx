@@ -42,7 +42,7 @@ export function MovieCard({ item, onClick, inWatchlist, onQuickAdd }: MovieCardP
         <div className="w-2.5 h-2.5 rounded-full border-2 border-theme-border bg-theme-surface" />
         <div className="w-2.5 h-2.5 rounded-full border-2 border-theme-border bg-theme-surface" />
         <span className="ml-2 font-mono text-[10px] text-theme-text-muted truncate flex-1">
-          {isTv ? "serie" : "pelicula"}.mkv
+          {isTv ? "serie" : "pelicula"}
         </span>
         {/* Quick add */}
         {onQuickAdd && (

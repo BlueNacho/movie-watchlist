@@ -22,8 +22,7 @@ const sourGummy = Sour_Gummy({
 });
 
 export const metadata: Metadata = {
-  title: "Piponcito's Watchlist",
-  description: "Nuestra lista de pelis y series para ver juntos",
+  title: "PiponOS",
 };
 
 // Inline script to set theme before paint — reads the non-httpOnly cookie

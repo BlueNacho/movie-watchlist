@@ -28,7 +28,7 @@ export function TosModal({ username, onAccepted }: Props) {
         <div className="flex items-center gap-1.5 px-4 py-2.5 border-b-3 border-theme-border bg-theme-card-bar">
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
-          <span className="ml-2 font-mono text-xs text-theme-text-muted">terminos-y-condiciones.mkv</span>
+          <span className="ml-2 font-mono text-xs text-theme-text-muted">terminos y condiciones</span>
         </div>
 
         {/* Content */}

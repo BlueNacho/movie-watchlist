@@ -111,7 +111,7 @@ export function MovieDetailDialog({ itemId, mediaType, open, onOpenChange, onAdd
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
           <div className="w-3 h-3 rounded-full border-2 border-theme-border bg-theme-surface" />
           <span className="ml-2 flex-1 font-mono text-xs text-theme-text-muted truncate">
-            {headerLabel || `${item?.title || "cargando..."} — detalle.mkv`}
+            {headerLabel || `${item?.title || "cargando..."}`}
           </span>
           <DialogClose className="flex h-7 w-7 items-center justify-center rounded-md border-2 border-theme-border bg-theme-surface text-theme-text hover:bg-theme-highlight transition-colors cursor-pointer shrink-0">
             <X size={14} strokeWidth={3} />

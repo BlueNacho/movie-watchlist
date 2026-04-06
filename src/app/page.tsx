@@ -1,13 +1,10 @@
 import { Suspense } from "react";
-import { MovieGrid } from "@/components/movie-grid";
-import { PageLayout } from "@/components/page-layout";
+import { HomeScreen } from "@/components/pipon-os/home-screen";
 
 export default function Home() {
   return (
-    <PageLayout>
-      <Suspense>
-        <MovieGrid />
-      </Suspense>
-    </PageLayout>
+    <Suspense>
+      <HomeScreen />
+    </Suspense>
   );
 }
