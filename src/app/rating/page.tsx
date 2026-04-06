@@ -11,9 +11,11 @@ import { useUpload } from "@/lib/use-upload";
 import { FilterDropdown } from "@/components/filter-dropdown";
 import { invalidatePendingActions } from "@/lib/use-pending-actions";
 import { useOnboarding } from "@/lib/use-onboarding";
+import { useCurrentUser } from "@/lib/use-current-user";
 
 interface PlaceRating {
   username: string;
+  avatarUrl: string | null;
   score: number;
   comment: string | null;
 }
@@ -50,12 +52,9 @@ export default function RatingPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
-  const [username, setUsername] = useState("");
+  const { user } = useCurrentUser();
+  const username = user?.username ?? "";
   const router = useRouter();
-
-  useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => { if (d?.username) setUsername(d.username); }).catch(() => {});
-  }, []);
 
   const fetchPlaces = useCallback(() => {
     setLoading(true);
@@ -416,7 +415,7 @@ function PlaceDetailModal({ place, username, onClose, onRated }: { place: Place;
           {place.ratings.map((r) => (
             <div key={r.username} className="rounded-lg border-2 border-theme-border bg-theme-surface-alt p-3">
               <div className="flex items-center gap-2 mb-1">
-                <UserAvatar username={r.username} size={24} />
+                <UserAvatar username={r.username} avatarUrl={r.avatarUrl} size={24} />
                 <span className="font-bold text-sm text-theme-text capitalize">{r.username}</span>
                 <StarRatingDisplay score={r.score} size={14} />
                 <span className="font-mono text-xs font-bold text-theme-text-muted">{r.score.toFixed(1)}</span>

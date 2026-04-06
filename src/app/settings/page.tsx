@@ -7,23 +7,15 @@ import { HomeButton } from "@/components/pipon-os/home-button";
 import { UserAvatar } from "@/components/user-avatar";
 import { useUpload } from "@/lib/use-upload";
 import { useOnboarding } from "@/lib/use-onboarding";
+import { useCurrentUser } from "@/lib/use-current-user";
 
 export default function SettingsPage() {
-  const [username, setUsername] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { user, invalidate } = useCurrentUser();
+  const username = user?.username ?? "";
+  const avatarUrl = user?.avatarUrl ?? null;
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const { upload, uploading, error: uploadError } = useUpload();
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.username) setUsername(data.username);
-        if (data?.avatarUrl) setAvatarUrl(data.avatarUrl);
-      })
-      .catch(() => {});
-  }, []);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -31,7 +23,7 @@ export default function SettingsPage() {
 
     const result = await upload(file, "avatars");
     if (result) {
-      setAvatarUrl(result.url);
+      invalidate({ avatarUrl: result.url });
       await fetch("/api/auth/avatar", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -41,7 +33,7 @@ export default function SettingsPage() {
   }
 
   async function handleRemoveAvatar() {
-    setAvatarUrl(null);
+    invalidate({ avatarUrl: null });
     await fetch("/api/auth/avatar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

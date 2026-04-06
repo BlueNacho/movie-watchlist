@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Settings, Clapperboard, Star, CalendarHeart, Gamepad2, Music, BookOpen, Camera } from "lucide-react";
 import { StatusBar } from "./status-bar";
 import { AppIcon } from "./app-icon";
@@ -8,24 +8,20 @@ import { IPhoneHomeIcon } from "./iphone-home-icon";
 import { useTheme } from "@/lib/theme";
 import { usePendingActions } from "@/lib/use-pending-actions";
 import { useOnboarding } from "@/lib/use-onboarding";
+import { useCurrentUser } from "@/lib/use-current-user";
 
 export function HomeScreen() {
   const { setTheme } = useTheme();
   const { counts } = usePendingActions();
-  const [username, setUsername] = useState("");
+  const { user } = useCurrentUser();
+  const username = user?.username ?? "";
 
-  // Re-sync theme from server on home load
+  // Re-sync theme from cached user
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.theme === "blue" || data?.theme === "pink") {
-          setTheme(data.theme);
-        }
-        if (data?.username) setUsername(data.username);
-      })
-      .catch(() => {});
-  }, [setTheme]);
+    if (user?.theme === "blue" || user?.theme === "pink") {
+      setTheme(user.theme);
+    }
+  }, [user?.theme, setTheme]);
 
   useOnboarding({
     phase: "home",

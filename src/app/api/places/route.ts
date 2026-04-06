@@ -34,16 +34,17 @@ export async function GET() {
       placeId: placeRatings.placeId,
       userId: placeRatings.userId,
       username: users.username,
+      avatarUrl: users.avatarUrl,
       score: placeRatings.score,
       comment: placeRatings.comment,
     })
     .from(placeRatings)
     .innerJoin(users, eq(placeRatings.userId, users.id));
 
-  const ratingsMap = new Map<number, { username: string; score: number; comment: string | null }[]>();
+  const ratingsMap = new Map<number, { username: string; avatarUrl: string | null; score: number; comment: string | null }[]>();
   for (const r of allRatings) {
     const list = ratingsMap.get(r.placeId) || [];
-    list.push({ username: r.username, score: parseFloat(r.score), comment: r.comment });
+    list.push({ username: r.username, avatarUrl: r.avatarUrl, score: parseFloat(r.score), comment: r.comment });
     ratingsMap.set(r.placeId, list);
   }
 
